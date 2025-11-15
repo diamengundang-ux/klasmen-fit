@@ -156,8 +156,9 @@
                     <!-- CARD BARU: Riwayat Pertandingan -->
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <h2 class="text-xl font-semibold mb-4">Riwayat Pertandingan</h2>
-                        <div class="overflow-y-auto max-h-64">
-                             <table class="w-full text-left text-sm">
+                        <!-- PERUBAHAN DI SINI: tambahkan overflow-x-auto -->
+                        <div class="overflow-y-auto max-h-64 overflow-x-auto">
+                             <table class="w-full text-left text-sm min-w-[400px]"> <!-- Tambahkan min-w agar tidak terlalu sempit -->
                                 <thead>
                                     <tr class="border-b text-gray-600">
                                         <th class="p-2 w-12 text-center">No</th>
@@ -189,19 +190,19 @@
                         <input type="number" id="scorer-goals" placeholder="Jml Gol" min="1" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
                         <button type="submit" class="col-span-3 bg-blue-500 text-white py-2 rounded-md font-semibold">Update Gol</button>
                     </form>
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                            <tr class="border-b text-gray-600">
-                                <th class="p-2">Pemain</th>
-                                <th class="p-2">Tim</th>
+                    <!-- PERUBAHAN DI SINI: Tambahkan div wrapper -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm min-w-[300px]">
+                            <thead>
+                                <tr class="border-b text-gray-600">
                                 <th class="p-2 text-right">Gol</th>
-                                <th class="p-2 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="scorers-table-body">
-                           <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
-                    </table>
+                                </tr>
+                            </thead>
+                            <tbody id="scorers-table-body">
+                               <!-- Data akan diisi oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div> <!-- Akhir div wrapper -->
                 </div>
                 
                 <!-- Card: Top Assist -->
@@ -215,19 +216,19 @@
                         <input type="number" id="assist-assists" placeholder="Jml Assist" min="1" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
                         <button type="submit" class="col-span-3 bg-blue-500 text-white py-2 rounded-md font-semibold">Update Assist</button>
                     </form>
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                             <tr class="border-b text-gray-600">
-                                <th class="p-2">Pemain</th>
-                                <th class="p-2">Tim</th>
+                    <!-- PERUBAHAN DI SINI: Tambahkan div wrapper -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm min-w-[300px]">
+                            <thead>
+                                 <tr class="border-b text-gray-600">
                                 <th class="p-2 text-right">Assist</th>
-                                <th class="p-2 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="assists-table-body">
-                           <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
-                    </table>
+                                </tr>
+                            </thead>
+                            <tbody id="assists-table-body">
+                               <!-- Data akan diisi oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div> <!-- Akhir div wrapper -->
                 </div>
             </div>
         </div>
