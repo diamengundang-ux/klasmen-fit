@@ -17,6 +17,19 @@
             transition: all 0.2s;
         }
         .delete-btn:hover { background-color: #ef4444; color: white; }
+        
+        /* CSS BARU UNTUK TOMBOL EDIT */
+        .edit-btn {
+            background-color: #dbeafe; color: #3b82f6; /* Blue */
+            border: none; border-radius: 50%;
+            width: 24px; height: 24px;
+            font-weight: bold; font-size: 14px;
+            line-height: 24px; text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 4px; /* Jarak dari tombol hapus */
+        }
+        .edit-btn:hover { background-color: #3b82f6; color: white; }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
@@ -249,15 +262,14 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 1. KONFIGURASI FIREBASE ---
-        // (Diambil dari kode yang kamu berikan sebelumnya)
         const firebaseConfig = {
           apiKey: "AIzaSyBJjNIH6E47Iqtul0Cj-6awqMeEFLQ_60Q",
           authDomain: "fit-fc.firebaseapp.com",
           projectId: "fit-fc",
           storageBucket: "fit-fc.firebasestorage.app",
           messagingSenderId: "914814128199",
-          appId: "1:914814128199:web:d17cc61f239278e7a4a162", // <-- Ini pakai config barumu
-          measurementId: "G-BCG9L0R15Q" // <-- Ini pakai config barumu
+          appId: "1:914814128199:web:d17cc61f239278e7a4a162", 
+          measurementId: "G-BCG9L0R15Q"
         };
 
         // Inisialisasi Firebase
@@ -274,36 +286,30 @@
         let assistsData = []; // Daftar assist (Array)
         let prevPositions = {}; // Lacak posisi lama { 'NamaTim': 1, ... }
         
-        // Unsubscribe listeners (untuk logout)
         let teamsListener = null;
         let matchesListener = null;
         let scorersListener = null;
         let assistsListener = null;
 
-        // Tampilan
         const authView = document.getElementById('auth-view');
         const appView = document.getElementById('app-view');
         
-        // Form Auth
         const loginForm = document.getElementById('login-form');
         const authError = document.getElementById('auth-error');
         const logoutButton = document.getElementById('logout-button');
         const userEmailSpan = document.getElementById('user-email');
         
-        // Form Aplikasi
         const addTeamForm = document.getElementById('add-team-form');
         const addMatchForm = document.getElementById('add-match-form');
         const addScorerForm = document.getElementById('add-scorer-form');
         const addAssistForm = document.getElementById('add-assist-form');
         
-        // Dropdown & Input
         const teamNameInput = document.getElementById('team_name');
         const teamADropdown = document.getElementById('team_a');
         const teamBDropdown = document.getElementById('team_b');
         const scorerTeamDropdown = document.getElementById('scorer-team-name');
         const assistTeamDropdown = document.getElementById('assist-team-name');
         
-        // Tabel Body
         const standingsBody = document.getElementById('standings-table-body');
         const matchHistoryBody = document.getElementById('match-history-body');
         const scorersBody = document.getElementById('scorers-table-body');
@@ -312,36 +318,27 @@
         
         // --- 3. LOGIKA AUTENTIKASI ---
 
-        // Controller Utama: Cek status login
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User sedang login
                 currentUserId = user.uid;
                 userEmailSpan.textContent = user.email;
-                
                 authView.classList.add('hidden');
                 appView.classList.remove('hidden');
-                
-                // Muat semua data dan pasang listener
                 loadAllData(currentUserId);
             } else {
-                // User logout
                 currentUserId = null;
                 authView.classList.remove('hidden');
                 appView.classList.add('hidden');
                 
-                // Hentikan semua listener
                 if (teamsListener) teamsListener();
                 if (matchesListener) matchesListener();
                 if (scorersListener) scorersListener();
                 if (assistsListener) assistsListener();
                 
-                // Bersihkan UI
                 clearUI();
             }
         });
 
-        // Handle Login
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -354,54 +351,44 @@
             }
         });
 
-        // Handle Logout
         logoutButton.addEventListener('click', async () => {
             await signOut(auth);
         });
         
-        // Fungsi Bersihkan UI saat logout
         function clearUI() {
             teamsData = {};
             matchesData = [];
             scorersData = [];
             assistsData = [];
             prevPositions = {};
-            
             standingsBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Silakan login...</td></tr>';
             matchHistoryBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500">...</td></tr>';
             scorersBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
             assistsBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
         }
 
-        // --- 4. PATH HELPER (PERBAIKAN PENTING DI SINI) ---
-        // Fungsi ini membuat path koleksi yang NORMAL, bukan path 'artifacts'
+        // --- 4. PATH HELPER (Jalur Database) ---
         
         function getTeamsCollection(userId) {
-            // Path BARU: /users/{userId}/teams
             return collection(db, 'users', userId, 'teams');
         }
         function getMatchesCollection(userId) {
-            // Path BARU: /users/{userId}/matches
             return collection(db, 'users', userId, 'matches');
         }
         function getScorersCollection(userId) {
-            // Path BARU: /users/{userId}/scorers
             return collection(db, 'users', userId, 'scorers');
         }
         function getAssistsCollection(userId) {
-            // Path BARU: /users/{userId}/assists
             return collection(db, 'users', userId, 'assists');
         }
         
         // --- 5. LOGIKA DATA (CRUD & LISTENERS) ---
         
-        // Fungsi utama untuk memuat semua data
         function loadAllData(userId) {
             
-            // 1. Listen ke 'teams'
             const teamsQuery = query(getTeamsCollection(userId));
             teamsListener = onSnapshot(teamsQuery, (snapshot) => {
-                teamsData = {}; // Reset
+                teamsData = {};
                 let teamNames = [];
                 snapshot.docs.forEach(doc => {
                     const team = { ...doc.data(), id: doc.id };
@@ -409,24 +396,20 @@
                     teamNames.push(team.name);
                 });
                 teamNames.sort();
-                
                 updateDropdowns(teamNames);
-                renderStandings(); // Hitung ulang klasemen
+                renderStandings(); 
             });
             
-            // 2. Listen ke 'matches'
             const matchesQuery = query(getMatchesCollection(userId));
             matchesListener = onSnapshot(matchesQuery, (snapshot) => {
-                matchesData = []; // Reset
+                matchesData = []; 
                 snapshot.docs.forEach(doc => {
                     matchesData.push({ ...doc.data(), id: doc.id });
                 });
-                
                 renderMatchHistory();
-                renderStandings(); // Hitung ulang klasemen
+                renderStandings(); 
             });
 
-            // 3. Listen ke 'scorers'
             const scorersQuery = query(getScorersCollection(userId));
             scorersListener = onSnapshot(scorersQuery, (snapshot) => {
                 scorersData = [];
@@ -436,7 +419,6 @@
                 renderScorers();
             });
 
-            // 4. Listen ke 'assists'
             const assistsQuery = query(getAssistsCollection(userId));
             assistsListener = onSnapshot(assistsQuery, (snapshot) => {
                 assistsData = [];
@@ -449,18 +431,16 @@
         
         // --- Form Handlers ---
 
-        // Tambah Tim
         addTeamForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const teamName = teamNameInput.value.trim();
             if (teamName && currentUserId && !teamsData[teamName]) {
                 try {
-                    // Menggunakan path BARU
                     await addDoc(getTeamsCollection(currentUserId), {
                         name: teamName,
-                        prev_pos: 999 // 999 untuk tim baru
+                        prev_pos: 999 
                     });
-                    teamNameInput.value = ''; // Kosongkan form
+                    teamNameInput.value = ''; 
                 } catch (error) {
                     console.error("Error adding team: ", error);
                     alert("Gagal menambah tim. Cek console (F12) untuk error.");
@@ -468,7 +448,6 @@
             }
         });
         
-        // Tambah Pertandingan
         addMatchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const teamA = teamADropdown.value;
@@ -478,15 +457,13 @@
             
             if (teamA !== teamB && currentUserId) {
                 try {
-                    // Menggunakan path BARU
                     await addDoc(getMatchesCollection(currentUserId), {
                         team_a: teamA,
                         score_a: scoreA,
                         team_b: teamB,
                         score_b: scoreB,
-                        createdAt: new Date().toISOString() // Untuk sorting
+                        createdAt: new Date().toISOString()
                     });
-                    // Reset form
                     document.getElementById('score_a').value = 0;
                     document.getElementById('score_b').value = 0;
                 } catch (error) {
@@ -496,7 +473,6 @@
             }
         });
         
-        // Tambah Top Skor
         addScorerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const player = document.getElementById('scorer-player-name').value.trim();
@@ -505,26 +481,22 @@
             
             if (!player || !team || goals <= 0 || !currentUserId) return;
 
-            // Cek apakah pemain sudah ada
             const existingScorer = scorersData.find(s => s.player === player);
             
             try {
                 if (existingScorer) {
-                    // Update
                     const docRef = doc(getScorersCollection(currentUserId), existingScorer.id);
                     await updateDoc(docRef, {
                         goals: existingScorer.goals + goals,
-                        team: team // Update tim terakhir
+                        team: team
                     });
                 } else {
-                    // Tambah baru
                     await addDoc(getScorersCollection(currentUserId), {
                         player: player,
                         team: team,
                         goals: goals
                     });
                 }
-                // Reset form
                 document.getElementById('scorer-player-name').value = '';
                 document.getElementById('scorer-goals').value = '';
             } catch (error) {
@@ -533,7 +505,6 @@
             }
         });
         
-        // Tambah Top Assist
         addAssistForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const player = document.getElementById('assist-player-name').value.trim();
@@ -546,21 +517,18 @@
             
             try {
                 if (existingAssist) {
-                    // Update
                     const docRef = doc(getAssistsCollection(currentUserId), existingAssist.id);
                     await updateDoc(docRef, {
                         assists: existingAssist.assists + assists,
                         team: team
                     });
                 } else {
-                    // Tambah baru
                     await addDoc(getAssistsCollection(currentUserId), {
                         player: player,
                         team: team,
                         assists: assists
                     });
                 }
-                // Reset form
                 document.getElementById('assist-player-name').value = '';
                 document.getElementById('assist-assists').value = '';
             } catch (error) {
@@ -571,7 +539,6 @@
         
         // --- 6. LOGIKA RENDER (TAMPILAN) ---
 
-        // Update semua dropdown
         function updateDropdowns(teamNames) {
             const optionsHtml = teamNames.map(name => `<option value="${name}">${name}</option>`).join('');
             
@@ -581,14 +548,12 @@
             assistTeamDropdown.innerHTML = `<option value="">Pilih Tim</option>` + optionsHtml;
         }
 
-        // Render Klasemen (LOGIKA KOMPLEKS)
         async function renderStandings() {
             if (!currentUserId || Object.keys(teamsData).length === 0) {
                 standingsBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Belum ada tim di klasemen.</td></tr>';
                 return;
             }
             
-            // 1. Inisialisasi data klasemen (persis seperti logika PHP)
             let standingsData = {};
             for (const name in teamsData) {
                 standingsData[name] = {
@@ -597,15 +562,13 @@
                     gf: 0, ga: 0, gd: 0, pts: 0,
                     form: [],
                     prev_pos: teamsData[name].prev_pos || 0,
-                    id: teamsData[name].id // Simpan ID dokumen
+                    id: teamsData[name].id
                 };
             }
             
-            // 2. Kalkulasi ulang dari 'matchesData'
             matchesData.forEach(match => {
                 const { team_a, team_b, score_a, score_b } = match;
                 
-                // Pastikan tim masih ada
                 if (standingsData[team_a] && standingsData[team_b]) {
                     const teamAStats = standingsData[team_a];
                     const teamBStats = standingsData[team_b];
@@ -630,34 +593,31 @@
                 }
             });
 
-            // 3. Finalisasi Data
             let standings = Object.values(standingsData).map(stats => {
                 stats.gd = stats.gf - stats.ga;
                 stats.pts = (stats.w * 3) + stats.d;
-                stats.form = stats.form.slice(-3); // Ambil 3 laga terakhir
+                stats.form = stats.form.slice(-3); 
                 return stats;
             });
             
-            // 4. Urutkan (Sorting)
             standings.sort((a, b) => {
-                if (a.pts !== b.pts) return b.pts - a.pts; // Poin
-                if (a.gd !== b.gd) return b.gd - a.gd; // Selisih Gol
-                if (a.gf !== b.gf) return b.gf - a.gf; // Gol Masuk
-                return a.name.localeCompare(b.name); // Nama
+                if (a.pts !== b.pts) return b.pts - a.pts;
+                if (a.gd !== b.gd) return b.gd - a.gd;
+                if (a.gf !== b.gf) return b.gf - a.gf;
+                return a.name.localeCompare(b.name);
             });
             
-            // 5. Render ke HTML
             let html = '';
-            let currentPositions = {}; // Lacak posisi baru
+            let currentPositions = {}; 
             
             standings.forEach((team, index) => {
                 const no = index + 1;
-                currentPositions[team.name] = no; // Catat posisi baru
+                currentPositions[team.name] = no; 
                 
-                const oldPos = prevPositions[team.name] || team.prev_pos; // Ambil posisi lama
+                const oldPos = prevPositions[team.name] || team.prev_pos; 
                 let icon = '';
                 
-                if (oldPos != 0 && oldPos != 999) { // 999 = baru
+                if (oldPos != 0 && oldPos != 999) { 
                     if (no < oldPos) {
                         icon = `<span class="text-green-500 font-bold ml-1" title="Naik dari pos ${oldPos}">&#9650;</span>`;
                     } else if (no > oldPos) {
@@ -665,7 +625,6 @@
                     }
                 }
 
-                // Render 3 Laga Terakhir
                 let formHtml = '';
                 const formDisplay = Array(3 - team.form.length).fill('N').concat(team.form);
                 formDisplay.forEach(result => {
@@ -701,31 +660,25 @@
             
             standingsBody.innerHTML = html || '<tr><td colspan="9" class="p-4 text-center text-gray-500">Mulai input tim dan pertandingan.</td></tr>';
             
-            // 6. Simpan posisi baru ke database (DAN update state lokal)
-            // Ini penting agar 'prev_pos' tetap ada saat refresh
-            prevPositions = {}; // Reset state lokal
+            prevPositions = {}; 
             standings.forEach(async (team, index) => {
                 const newPos = index + 1;
-                prevPositions[team.name] = newPos; // Update state lokal
+                prevPositions[team.name] = newPos; 
                 
-                // Cek jika posisi berubah SEBELUM update ke DB
                 if (teamsData[team.name] && teamsData[team.name].prev_pos !== newPos) {
                     try {
-                        const teamDocRef = doc(getTeamsCollection(currentUserId), team.id); // Gunakan ID tim
+                        const teamDocRef = doc(getTeamsCollection(currentUserId), team.id); 
                         await updateDoc(teamDocRef, { prev_pos: newPos });
                     } catch (e) {
-                        // console.error("Error updating prev_pos", e);
-                        // Biarkan saja jika error, mungkin data belum sinkron
+                        // Biarkan saja
                     }
                 }
             });
         }
         
-        // Render Riwayat Laga
         function renderMatchHistory() {
             if (!currentUserId) return;
             
-            // Urutkan (data terbaru di atas)
             matchesData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             
             let html = '';
@@ -739,7 +692,11 @@
                         <td class="p-2 text-center font-bold">${match.score_a} - ${match.score_b}</td>
                         <td class="p-2 font-medium">${match.team_b}</td>
                         <td class="p-2 text-center">
-                            <button class="delete-btn" data-id="${match.id}" data-type="match">&times;</button>
+                            <!-- PERUBAHAN: Tombol Edit & Hapus dibungkus flex -->
+                            <div class="flex justify-center items-center">
+                                <button class="edit-btn" data-id="${match.id}" data-type="match-edit" title="Edit Skor">&#9998;</button>
+                                <button class="delete-btn" data-id="${match.id}" data-type="match-delete" title="Hapus">&times;</button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -748,11 +705,10 @@
             matchHistoryBody.innerHTML = html || '<tr><td colspan="5" class="p-3 text-center text-gray-500">Belum ada data pertandingan.</td></tr>';
         }
         
-        // Render Top Skor
         function renderScorers() {
             if (!currentUserId) return;
             
-            scorersData.sort((a, b) => b.goals - a.goals); // Urutkan
+            scorersData.sort((a, b) => b.goals - a.goals);
             
             let html = '';
             scorersData.slice(0, 10).forEach(scorer => {
@@ -762,7 +718,7 @@
                         <td class="p-2 text-gray-600">${scorer.team}</td>
                         <td class="p-2 text-right font-bold">${scorer.goals}</td>
                         <td class="p-2 text-center">
-                            <button class="delete-btn" data-id="${scorer.id}" data-type="scorer">&times;</button>
+                            <button class="delete-btn" data-id="${scorer.id}" data-type="scorer-delete" title="Hapus">&times;</button>
                         </td>
                     </tr>
                 `;
@@ -770,11 +726,10 @@
             scorersBody.innerHTML = html || '<tr><td colspan="4" class="p-3 text-center text-gray-500">Belum ada data.</td></tr>';
         }
         
-        // Render Top Assist
         function renderAssists() {
             if (!currentUserId) return;
             
-            assistsData.sort((a, b) => b.assists - a.assists); // Urutkan
+            assistsData.sort((a, b) => b.assists - a.assists);
             
             let html = '';
             assistsData.slice(0, 10).forEach(assist => {
@@ -784,7 +739,7 @@
                         <td class="p-2 text-gray-600">${assist.team}</td>
                         <td class="p-2 text-right font-bold">${assist.assists}</td>
                         <td class="p-2 text-center">
-                            <button class="delete-btn" data-id="${assist.id}" data-type="assist">&times;</button>
+                            <button class="delete-btn" data-id="${assist.id}" data-type="assist-delete" title="Hapus">&times;</button>
                         </td>
                     </tr>
                 `;
@@ -792,9 +747,10 @@
             assistsBody.innerHTML = html || '<tr><td colspan="4" class="p-3 text-center text-gray-500">Belum ada data.</td></tr>';
         }
         
-        // --- 7. EVENT LISTENER UNTUK HAPUS (DELETE) ---
-        // Kita pakai satu event listener di 'app-view' untuk menangani semua klik
+        // --- 7. EVENT LISTENER UNTUK HAPUS & EDIT ---
         appView.addEventListener('click', async (e) => {
+            
+            // --- LOGIKA HAPUS (DELETE) ---
             if (e.target.classList.contains('delete-btn')) {
                 const id = e.target.dataset.id;
                 const type = e.target.dataset.type;
@@ -805,23 +761,66 @@
                 let confirmationText = "Yakin ingin menghapus data ini?";
                 
                 try {
-                    if (type === 'match') {
+                    if (type === 'match-delete') {
                         docRef = doc(getMatchesCollection(currentUserId), id);
                         confirmationText = "Yakin hapus laga ini? Klasemen akan dihitung ulang.";
-                    } else if (type === 'scorer') {
+                    } else if (type === 'scorer-delete') {
                         docRef = doc(getScorersCollection(currentUserId), id);
                         confirmationText = "Yakin hapus pemain ini dari top skor?";
-                    } else if (type === 'assist') {
+                    } else if (type === 'assist-delete') {
                         docRef = doc(getAssistsCollection(currentUserId), id);
                         confirmationText = "Yakin hapus pemain ini dari top assist?";
                     }
                     
                     if (confirm(confirmationText)) {
                         await deleteDoc(docRef);
-                        // onSnapshot akan otomatis meng-update UI
                     }
                 } catch (error) {
                     console.error(`Error deleting ${type}: `, error);
+                }
+            }
+
+            // --- LOGIKA EDIT BARU ---
+            if (e.target.classList.contains('edit-btn')) {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+
+                if (type === 'match-edit' && currentUserId) {
+                    // 1. Cari data laga yang mau di-edit
+                    const matchToEdit = matchesData.find(m => m.id === id);
+                    if (!matchToEdit) {
+                        alert("Error: Data laga tidak ditemukan.");
+                        return;
+                    }
+
+                    // 2. Minta skor baru pakai prompt (dengan skor lama sebagai default)
+                    const newScoreA_str = prompt(`Edit Skor Tuan Rumah (${matchToEdit.team_a}):`, matchToEdit.score_a);
+                    if (newScoreA_str === null) return; // User klik 'Cancel'
+
+                    const newScoreB_str = prompt(`Edit Skor Tamu (${matchToEdit.team_b}):`, matchToEdit.score_b);
+                    if (newScoreB_str === null) return; // User klik 'Cancel'
+
+                    // 3. Validasi skor baru
+                    const newScoreA = parseInt(newScoreA_str, 10);
+                    const newScoreB = parseInt(newScoreB_str, 10);
+
+                    if (isNaN(newScoreA) || isNaN(newScoreB) || newScoreA < 0 || newScoreB < 0) {
+                        alert("Skor tidak valid. Harap masukkan angka 0 atau lebih.");
+                        return;
+                    }
+
+                    // 4. Update data ke Firestore
+                    try {
+                        const docRef = doc(getMatchesCollection(currentUserId), id);
+                        await updateDoc(docRef, {
+                            score_a: newScoreA,
+                            score_b: newScoreB
+                        });
+                        // Tidak perlu render ulang, onSnapshot akan menangani otomatis
+                    } catch (error) {
+                        console.error("Error updating score: ", error);
+                        alert("Gagal meng-update skor.");
+                    }
                 }
             }
         });
