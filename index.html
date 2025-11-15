@@ -143,6 +143,7 @@
                                         <th class="p-3 text-center" title="Selisih Gol (GF-GA)">SG</th>
                                         <th class="p-3 text-center" title="Poin">Poin</th>
                                         <th class="p-3 text-center">3 Laga Terakhir</th>
+                                        <th class="p-3 text-center">Aksi</th> <!-- BARU: Kolom Aksi -->
                                     </tr>
                                 </thead>
                                 <tbody id="standings-table-body">
@@ -491,7 +492,7 @@
             scorersData = [];
             assistsData = [];
             prevPositions = {};
-            standingsBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Silakan login...</td></tr>';
+            standingsBody.innerHTML = '<tr><td colspan="10" class="p-4 text-center text-gray-500">Silakan login...</td></tr>';
             matchHistoryBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500">...</td></tr>';
             scorersBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
             assistsBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
@@ -680,7 +681,7 @@
 
         async function renderStandings() {
             if (!currentUserId || Object.keys(teamsData).length === 0) {
-                standingsBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Belum ada tim di klasemen.</td></tr>';
+                standingsBody.innerHTML = '<tr><td colspan="10" class="p-4 text-center text-gray-500">Belum ada tim di klasemen.</td></tr>'; // Ubah colspan
                 return;
             }
             
@@ -692,7 +693,7 @@
                     gf: 0, ga: 0, gd: 0, pts: 0,
                     form: [],
                     prev_pos: teamsData[name].prev_pos || 0,
-                    id: teamsData[name].id
+                    id: teamsData[name].id // Simpan doc ID
                 };
             }
             
@@ -784,11 +785,19 @@
                         <td class="p-3 text-center">${team.gd} (${team.gf}-${team.ga})</td>
                         <td class="p-3 text-center font-bold text-blue-600">${team.pts}</td>
                         <td class="p-3"><div class="flex justify-center items-center">${formHtml}</div></td>
+                        <!-- BARU: Kolom Aksi dengan Tombol Hapus Tim -->
+                        <td class="p-3 text-center">
+                            <button class="delete-btn" 
+                                    data-id="${team.id}" 
+                                    data-name="${team.name}" 
+                                    data-type="team-delete" 
+                                    title="Hapus Tim ${team.name}">&times;</button>
+                        </td>
                     </tr>
                 `;
             });
             
-            standingsBody.innerHTML = html || '<tr><td colspan="9" class="p-4 text-center text-gray-500">Mulai input tim dan pertandingan.</td></tr>';
+            standingsBody.innerHTML = html || '<tr><td colspan="10" class="p-4 text-center text-gray-500">Mulai input tim dan pertandingan.</td></tr>'; // Ubah colspan
             
             prevPositions = {}; 
             standings.forEach(async (team, index) => {
@@ -822,7 +831,6 @@
                         <td class="p-2 text-center font-bold">${match.score_a} - ${match.score_b}</td>
                         <td class="p-2 font-medium">${match.team_b}</td>
                         <td class="p-2 text-center">
-                            <!-- PERUBAHAN: Tombol Edit & Hapus dibungkus flex -->
                             <div class="flex justify-center items-center">
                                 <button class="edit-btn" data-id="${match.id}" data-type="match-edit" title="Edit Skor">&#9998;</button>
                                 <button class="delete-btn" data-id="${match.id}" data-type="match-delete" title="Hapus">&times;</button>
@@ -880,12 +888,12 @@
         // --- 7. EVENT LISTENER UNTUK HAPUS & EDIT (DI-UPGRADE) ---
         appView.addEventListener('click', async (e) => {
             
-            // Cek target tombol (closest) untuk menangani klik pada ikon/span
             const targetButton = e.target.closest('button');
-            if (!targetButton) return; // Klik bukan di tombol
+            if (!targetButton) return; 
 
             const id = targetButton.dataset.id;
             const type = targetButton.dataset.type;
+            const name = targetButton.dataset.name; // BARU: Ambil nama tim
             
             if (!id || !type || !currentUserId) return;
 
@@ -904,55 +912,71 @@
                     } else if (type === 'assist-delete') {
                         docRef = doc(getAssistsCollection(currentUserId), id);
                         confirmationText = "Yakin hapus pemain ini dari top assist?";
+                    } else if (type === 'team-delete') { // LOGIKA BARU HAPUS TIM
+                        docRef = doc(getTeamsCollection(currentUserId), id);
+                        confirmationText = `Yakin hapus tim "${name}"? SEMUA laga yang dimainkan tim ini akan ikut terhapus.`;
                     }
                     
-                    // GANTI 'confirm()' DENGAN MODAL KUSTOM
                     const didConfirm = await showCustomConfirm("Konfirmasi Hapus", confirmationText);
+                    
                     if (didConfirm) {
                         await deleteDoc(docRef);
+                        
+                        // LOGIKA BARU: Jika menghapus tim, hapus juga laganya
+                        if (type === 'team-delete') {
+                            // Hapus laga dimana tim ini adalah team_a
+                            const matchesAQuery = query(getMatchesCollection(currentUserId), where("team_a", "==", name));
+                            const matchesASnapshot = await getDocs(matchesAQuery);
+                            for (const matchDoc of matchesASnapshot.docs) {
+                                await deleteDoc(matchDoc.ref);
+                            }
+
+                            // Hapus laga dimana tim ini adalah team_b
+                            const matchesBQuery = query(getMatchesCollection(currentUserId), where("team_b", "==", name));
+                            const matchesBSnapshot = await getDocs(matchesBQuery);
+                            for (const matchDoc of matchesBSnapshot.docs) {
+                                await deleteDoc(matchDoc.ref);
+                            }
+                            
+                            // NANTI KITA PERLU HAPUS TOP SKOR & ASSIST JUGA? (Untuk nanti)
+                        }
                     }
                 } catch (error) {
                     console.error(`Error deleting ${type}: `, error);
-                    // GANTI 'alert()' DENGAN MODAL KUSTOM
                     await showCustomAlert("Error", `Gagal menghapus: ${error.message}`);
                 }
             }
 
             // --- LOGIKA EDIT (UPDATE) ---
             if (type === 'match-edit') {
-                // 1. Cari data laga yang mau di-edit
                 const matchToEdit = matchesData.find(m => m.id === id);
                 if (!matchToEdit) {
                     await showCustomAlert("Error", "Data laga tidak ditemukan.");
                     return;
                 }
 
-                // 2. Minta skor baru pakai MODAL KUSTOM
                 const result = await showCustomPrompt(
                     `Edit Skor: ${matchToEdit.team_a} vs ${matchToEdit.team_b}`,
-                    matchToEdit.team_a, // Label A
-                    matchToEdit.team_b, // Label B
-                    matchToEdit.score_a, // Value A
-                    matchToEdit.score_b  // Value B
+                    matchToEdit.team_a,
+                    matchToEdit.team_b,
+                    matchToEdit.score_a,
+                    matchToEdit.score_b
                 );
 
-                if (result === null) return; // User klik 'Cancel'
+                if (result === null) return; 
 
-                // 3. Validasi skor baru
                 const { scoreA: newScoreA, scoreB: newScoreB } = result;
                 if (isNaN(newScoreA) || isNaN(newScoreB) || newScoreA < 0 || newScoreB < 0) {
                     await showCustomAlert("Error", "Skor tidak valid. Harap masukkan angka 0 atau lebih.");
                     return;
                 }
 
-                // 4. Update data ke Firestore
                 try {
                     const docRef = doc(getMatchesCollection(currentUserId), id);
                     await updateDoc(docRef, {
                         score_a: newScoreA,
                         score_b: newScoreB
                     });
-                    // onSnapshot akan menangani update UI
                 } catch (error) {
                     console.error("Error updating score: ", error);
                     await showCustomAlert("Error", "Gagal meng-update skor.");
