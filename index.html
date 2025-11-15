@@ -18,7 +18,7 @@
         }
         .delete-btn:hover { background-color: #ef4444; color: white; }
         
-        /* CSS BARU UNTUK TOMBOL EDIT */
+        /* CSS UNTUK TOMBOL EDIT */
         .edit-btn {
             background-color: #dbeafe; color: #3b82f6; /* Blue */
             border: none; border-radius: 50%;
@@ -232,6 +232,33 @@
         </div>
     </div>
 
+    <!-- ===== BAGIAN MODAL KUSTOM (BARU) ===== -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 id="modal-title" class="text-xl font-semibold mb-4">Judul Modal</h2>
+            <p id="modal-message" class="text-gray-700 mb-4">Pesan modal.</p>
+            
+            <!-- Input untuk Edit Skor (disembunyikan by default) -->
+            <div id="modal-inputs" class="space-y-4 mb-4 hidden">
+                <div>
+                    <label id="modal-label-a" for="modal-input-a" class="block text-sm font-medium text-gray-700">Skor A</label>
+                    <input type="number" id="modal-input-a" min="0" class="w-full mt-1 p-2 border border-gray-300 rounded-md text-center">
+                </div>
+                 <div>
+                    <label id="modal-label-b" for="modal-input-b" class="block text-sm font-medium text-gray-700">Skor B</label>
+                    <input type="number" id="modal-input-b" min="0" class="w-full mt-1 p-2 border border-gray-300 rounded-md text-center">
+                </div>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="flex justify-end gap-4">
+                <button id="modal-cancel-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-md font-semibold hover:bg-gray-400">Batal</button>
+                <button id="modal-ok-btn" class="bg-blue-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-700">OK</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== AKHIR MODAL KUSTOM ===== -->
+
     <!-- ===================================================================== -->
     <!-- SCRIPT JAVASCRIPT & FIREBASE -->
     <!-- ===================================================================== -->
@@ -314,6 +341,109 @@
         const matchHistoryBody = document.getElementById('match-history-body');
         const scorersBody = document.getElementById('scorers-table-body');
         const assistsBody = document.getElementById('assists-table-body');
+
+        // --- 2.5. LOGIKA MODAL KUSTOM (BARU) ---
+        const modal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalInputs = document.getElementById('modal-inputs');
+        const modalLabelA = document.getElementById('modal-label-a');
+        const modalInputA = document.getElementById('modal-input-a');
+        const modalLabelB = document.getElementById('modal-label-b');
+        const modalInputB = document.getElementById('modal-input-b');
+        const modalOkBtn = document.getElementById('modal-ok-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        let modalResolve = null; // Global promise resolver
+
+        // Fungsi untuk reset/sembunyikan modal
+        function hideModal() {
+            modal.classList.add('hidden');
+            modalInputs.classList.add('hidden');
+            modalMessage.classList.remove('hidden');
+            modalOkBtn.style.display = 'inline-flex';
+            modalCancelBtn.style.display = 'inline-flex';
+            if (modalResolve) {
+                modalResolve(null); // Resolve with null if closed unexpectedly
+                modalResolve = null;
+            }
+        }
+
+        // Tiga fungsi utama untuk modal
+        function showCustomAlert(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            
+            modalInputs.classList.add('hidden');
+            modalMessage.classList.remove('hidden');
+            modalCancelBtn.style.display = 'none'; // Sembunyikan Batal
+
+            modal.classList.remove('hidden');
+
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+            });
+        }
+
+        function showCustomConfirm(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            
+            modalInputs.classList.add('hidden');
+            modalMessage.classList.remove('hidden');
+            modalCancelBtn.style.display = 'inline-flex';
+
+            modal.classList.remove('hidden');
+
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+            });
+        }
+
+        function showCustomPrompt(title, labelA, labelB, valueA, valueB) {
+            modalTitle.textContent = title;
+            modalMessage.classList.add('hidden'); // Sembunyikan pesan
+            
+            modalInputs.classList.remove('hidden'); // Tampilkan input
+            modalLabelA.textContent = `Skor ${labelA}`;
+            modalLabelB.textContent = `Skor ${labelB}`;
+            modalInputA.value = valueA;
+            modalInputB.value = valueB;
+            
+            modalCancelBtn.style.display = 'inline-flex';
+
+            modal.classList.remove('hidden');
+
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+            });
+        }
+
+        // Event listener untuk tombol modal
+        modalOkBtn.addEventListener('click', () => {
+            if (!modalResolve) return;
+
+            // Cek apakah ini mode prompt
+            if (!modalInputs.classList.contains('hidden')) {
+                modalResolve({
+                    scoreA: parseInt(modalInputA.value, 10),
+                    scoreB: parseInt(modalInputB.value, 10)
+                });
+            } else {
+                modalResolve(true); // Untuk confirm atau alert
+            }
+            modalResolve = null;
+            modal.classList.add('hidden');
+        });
+
+        modalCancelBtn.addEventListener('click', () => {
+            if (!modalResolve) return;
+            
+            modalResolve(null); // Untuk confirm (false) atau prompt (null)
+            modalResolve = null;
+            modal.classList.add('hidden');
+        });
+        // --- AKHIR LOGIKA MODAL ---
 
         
         // --- 3. LOGIKA AUTENTIKASI ---
@@ -443,7 +573,7 @@
                     teamNameInput.value = ''; 
                 } catch (error) {
                     console.error("Error adding team: ", error);
-                    alert("Gagal menambah tim. Cek console (F12) untuk error.");
+                    await showCustomAlert("Error", "Gagal menambah tim. Cek console (F12) untuk error.");
                 }
             }
         });
@@ -468,7 +598,7 @@
                     document.getElementById('score_b').value = 0;
                 } catch (error) {
                     console.error("Error adding match: ", error);
-                    alert("Gagal menambah laga. Cek console (F12) untuk error.");
+                    await showCustomAlert("Error", "Gagal menambah laga. Cek console (F12) untuk error.");
                 }
             }
         });
@@ -501,7 +631,7 @@
                 document.getElementById('scorer-goals').value = '';
             } catch (error) {
                 console.error("Error adding scorer: ", error);
-                alert("Gagal menambah top skor. Cek console (F12) untuk error.");
+                await showCustomAlert("Error", "Gagal menambah top skor. Cek console (F12) untuk error.");
             }
         });
         
@@ -533,7 +663,7 @@
                 document.getElementById('assist-assists').value = '';
             } catch (error) {
                 console.error("Error adding assist: ", error);
-                alert("Gagal menambah top assist. Cek console (F12) untuk error.");
+                await showCustomAlert("Error", "Gagal menambah top assist. Cek console (F12) untuk error.");
             }
         });
         
@@ -747,16 +877,20 @@
             assistsBody.innerHTML = html || '<tr><td colspan="4" class="p-3 text-center text-gray-500">Belum ada data.</td></tr>';
         }
         
-        // --- 7. EVENT LISTENER UNTUK HAPUS & EDIT ---
+        // --- 7. EVENT LISTENER UNTUK HAPUS & EDIT (DI-UPGRADE) ---
         appView.addEventListener('click', async (e) => {
             
+            // Cek target tombol (closest) untuk menangani klik pada ikon/span
+            const targetButton = e.target.closest('button');
+            if (!targetButton) return; // Klik bukan di tombol
+
+            const id = targetButton.dataset.id;
+            const type = targetButton.dataset.type;
+            
+            if (!id || !type || !currentUserId) return;
+
             // --- LOGIKA HAPUS (DELETE) ---
-            if (e.target.classList.contains('delete-btn')) {
-                const id = e.target.dataset.id;
-                const type = e.target.dataset.type;
-                
-                if (!id || !type || !currentUserId) return;
-                
+            if (type.endsWith('-delete')) {
                 let docRef;
                 let confirmationText = "Yakin ingin menghapus data ini?";
                 
@@ -772,55 +906,56 @@
                         confirmationText = "Yakin hapus pemain ini dari top assist?";
                     }
                     
-                    if (confirm(confirmationText)) {
+                    // GANTI 'confirm()' DENGAN MODAL KUSTOM
+                    const didConfirm = await showCustomConfirm("Konfirmasi Hapus", confirmationText);
+                    if (didConfirm) {
                         await deleteDoc(docRef);
                     }
                 } catch (error) {
                     console.error(`Error deleting ${type}: `, error);
+                    // GANTI 'alert()' DENGAN MODAL KUSTOM
+                    await showCustomAlert("Error", `Gagal menghapus: ${error.message}`);
                 }
             }
 
-            // --- LOGIKA EDIT BARU ---
-            if (e.target.classList.contains('edit-btn')) {
-                const id = e.target.dataset.id;
-                const type = e.target.dataset.type;
+            // --- LOGIKA EDIT (UPDATE) ---
+            if (type === 'match-edit') {
+                // 1. Cari data laga yang mau di-edit
+                const matchToEdit = matchesData.find(m => m.id === id);
+                if (!matchToEdit) {
+                    await showCustomAlert("Error", "Data laga tidak ditemukan.");
+                    return;
+                }
 
-                if (type === 'match-edit' && currentUserId) {
-                    // 1. Cari data laga yang mau di-edit
-                    const matchToEdit = matchesData.find(m => m.id === id);
-                    if (!matchToEdit) {
-                        alert("Error: Data laga tidak ditemukan.");
-                        return;
-                    }
+                // 2. Minta skor baru pakai MODAL KUSTOM
+                const result = await showCustomPrompt(
+                    `Edit Skor: ${matchToEdit.team_a} vs ${matchToEdit.team_b}`,
+                    matchToEdit.team_a, // Label A
+                    matchToEdit.team_b, // Label B
+                    matchToEdit.score_a, // Value A
+                    matchToEdit.score_b  // Value B
+                );
 
-                    // 2. Minta skor baru pakai prompt (dengan skor lama sebagai default)
-                    const newScoreA_str = prompt(`Edit Skor Tuan Rumah (${matchToEdit.team_a}):`, matchToEdit.score_a);
-                    if (newScoreA_str === null) return; // User klik 'Cancel'
+                if (result === null) return; // User klik 'Cancel'
 
-                    const newScoreB_str = prompt(`Edit Skor Tamu (${matchToEdit.team_b}):`, matchToEdit.score_b);
-                    if (newScoreB_str === null) return; // User klik 'Cancel'
+                // 3. Validasi skor baru
+                const { scoreA: newScoreA, scoreB: newScoreB } = result;
+                if (isNaN(newScoreA) || isNaN(newScoreB) || newScoreA < 0 || newScoreB < 0) {
+                    await showCustomAlert("Error", "Skor tidak valid. Harap masukkan angka 0 atau lebih.");
+                    return;
+                }
 
-                    // 3. Validasi skor baru
-                    const newScoreA = parseInt(newScoreA_str, 10);
-                    const newScoreB = parseInt(newScoreB_str, 10);
-
-                    if (isNaN(newScoreA) || isNaN(newScoreB) || newScoreA < 0 || newScoreB < 0) {
-                        alert("Skor tidak valid. Harap masukkan angka 0 atau lebih.");
-                        return;
-                    }
-
-                    // 4. Update data ke Firestore
-                    try {
-                        const docRef = doc(getMatchesCollection(currentUserId), id);
-                        await updateDoc(docRef, {
-                            score_a: newScoreA,
-                            score_b: newScoreB
-                        });
-                        // Tidak perlu render ulang, onSnapshot akan menangani otomatis
-                    } catch (error) {
-                        console.error("Error updating score: ", error);
-                        alert("Gagal meng-update skor.");
-                    }
+                // 4. Update data ke Firestore
+                try {
+                    const docRef = doc(getMatchesCollection(currentUserId), id);
+                    await updateDoc(docRef, {
+                        score_a: newScoreA,
+                        score_b: newScoreB
+                    });
+                    // onSnapshot akan menangani update UI
+                } catch (error) {
+                    console.error("Error updating score: ", error);
+                    await showCustomAlert("Error", "Gagal meng-update skor.");
                 }
             }
         });
