@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Klasmen FIT FC (Firebase)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .delete-btn {
+            background-color: #fee2e2; color: #ef4444;
+            border: none; border-radius: 50%;
+            width: 24px; height: 24px;
+            font-weight: bold; font-size: 14px;
+            line-height: 24px; text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover { background-color: #ef4444; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8">
+
+    <div class="container mx-auto max-w-7xl">
+
+        <!-- ===== BAGIAN AUTENTIKASI (LOGIN/REGISTER) ===== -->
+        <!-- DIUBAH: Ditambahkan class flex untuk menengahkan kotak login -->
+        <div id="auth-view" class="flex items-center justify-center min-h-[80vh]">
+            <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+                <div class="flex items-center gap-4 mb-6">
+                    <img src="https://instasize.com/p/4aedf067406abcb8d75abf04a52e033761c576659b1282e21bee3ceeb71e8a1e" alt="Logo Sepakbola" class="w-12 h-12 object-contain">
+                    <h1 class="text-2xl font-bold text-gray-800">Login Klasemen FIT FC</h1>
+                </div>
+                
+                <form id="login-form" class="space-y-4">
+                    <h2 class="text-xl font-semibold">Login</h2>
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="login-email" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md" required>
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="login-password" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md" required>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md font-semibold">Login</button>
+                </form>
+
+                <p id="auth-error" class="text-red-500 text-sm mt-4"></p>
+            </div>
+        </div>
+
+        <!-- ===== BAGIAN APLIKASI UTAMA (Tersembunyi by default) ===== -->
+        <div id="app-view" class="hidden">
+            
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-4">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Football_pitch_icon.svg/1024px-Football_pitch_icon.svg.png" alt="Logo Sepakbola" class="w-12 h-12 object-contain">
+                    <h1 class="text-3xl font-bold text-gray-800">Aplikasi Klasmen FIT FC</h1>
+                </div>
+                <div>
+                    <span id="user-email" class="text-sm text-gray-600 mr-4"></span>
+                    <button id="logout-button" class="bg-red-500 text-white py-2 px-4 rounded-md text-sm font-semibold">Logout</button>
+                </div>
+            </div>
+
+            <!-- Grid Utama -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- KOLOM KIRI: Input Form -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+
+                    <!-- Card: Tambah Tim -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">Input Tim Baru</h2>
+                        <form id="add-team-form">
+                            <div class="mb-4">
+                                <label for="team_name" class="block text-sm font-medium text-gray-700 mb-1">Nama Tim</label>
+                                <input type="text" id="team_name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold">
+                                Tambah Tim
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Card: Input Pertandingan -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">Input Hasil Pertandingan</h2>
+                        <form id="add-match-form" class="space-y-4">
+                            <div>
+                                <label for="team_a" class="block text-sm font-medium text-gray-700">Tim Tuan Rumah (A)</label>
+                                <select id="team_a" class="w-full mt-1 p-2 border border-gray-300 rounded-md"></select>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="flex-1">
+                                    <label for="score_a" class="block text-sm font-medium text-gray-700">Skor A</label>
+                                    <input type="number" id="score_a" min="0" value="0" class="w-full mt-1 p-2 border border-gray-300 rounded-md text-center">
+                                </div>
+                                <span class="mt-6 font-bold text-gray-500">-</span>
+                                <div class="flex-1">
+                                    <label for="score_b" class="block text-sm font-medium text-gray-700">Skor B</label>
+                                    <input type="number" id="score_b" min="0" value="0" class="w-full mt-1 p-2 border border-gray-300 rounded-md text-center">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="team_b" class="block text-sm font-medium text-gray-700">Tim Tamu (B)</label>
+                                <select id="team_b" class="w-full mt-1 p-2 border border-gray-300 rounded-md"></select>
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md font-semibold">
+                                Simpan Pertandingan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- KOLOM KANAN: Tabel Klasemen & Riwayat -->
+                <div class="lg:col-span-2 flex flex-col gap-6">
+                    <!-- Card Klasemen Liga -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">Klasemen Liga</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-max text-left text-sm">
+                                <thead class="border-b-2 border-gray-200">
+                                    <tr class="text-gray-600 font-semibold">
+                                        <th class="p-3">No</th>
+                                        <th class="p-3">Nama Tim</th>
+                                        <th class="p-3 text-center" title="Main">M</th>
+                                        <th class="p-3 text-center" title="Menang">M</th>
+                                        <th class="p-3 text-center" title="Seri">S</th>
+                                        <th class="p-3 text-center" title="Kalah">K</th>
+                                        <th class="p-3 text-center" title="Selisih Gol (GF-GA)">SG</th>
+                                        <th class="p-3 text-center" title="Poin">Poin</th>
+                                        <th class="p-3 text-center">3 Laga Terakhir</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="standings-table-body">
+                                    <!-- Data akan diisi oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- CARD BARU: Riwayat Pertandingan -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">Riwayat Pertandingan</h2>
+                        <div class="overflow-y-auto max-h-64">
+                             <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="border-b text-gray-600">
+                                        <th class="p-2 w-12 text-center">No</th>
+                                        <th class="p-2">Tuan Rumah</th>
+                                        <th class="p-2 text-center">Skor</th>
+                                        <th class="p-2">Tamu</th>
+                                        <th class="p-2 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="match-history-body">
+                                    <!-- Data akan diisi oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Baris Baru: Top Skor & Top Assist -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <!-- Card: Top Skor -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">Top Skor</h2>
+                    <form id="add-scorer-form" class="grid grid-cols-3 gap-4 mb-4">
+                        <input type="text" id="scorer-player-name" placeholder="Nama Pemain" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
+                        <select id="scorer-team-name" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
+                            <option value="">Pilih Tim</option>
+                        </select>
+                        <input type="number" id="scorer-goals" placeholder="Jml Gol" min="1" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
+                        <button type="submit" class="col-span-3 bg-blue-500 text-white py-2 rounded-md font-semibold">Update Gol</button>
+                    </form>
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b text-gray-600">
+                                <th class="p-2">Pemain</th>
+                                <th class="p-2">Tim</th>
+                                <th class="p-2 text-right">Gol</th>
+                                <th class="p-2 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scorers-table-body">
+                           <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Card: Top Assist -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">Top Assist</h2>
+                    <form id="add-assist-form" class="grid grid-cols-3 gap-4 mb-4">
+                        <input type="text" id="assist-player-name" placeholder="Nama Pemain" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
+                         <select id="assist-team-name" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
+                            <option value="">Pilih Tim</option>
+                        </select>
+                        <input type="number" id="assist-assists" placeholder="Jml Assist" min="1" class="col-span-3 sm:col-span-1 p-2 border rounded-md" required>
+                        <button type="submit" class="col-span-3 bg-blue-500 text-white py-2 rounded-md font-semibold">Update Assist</button>
+                    </form>
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                             <tr class="border-b text-gray-600">
+                                <th class="p-2">Pemain</th>
+                                <th class="p-2">Tim</th>
+                                <th class="p-2 text-right">Assist</th>
+                                <th class="p-2 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assists-table-body">
+                           <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SCRIPT JAVASCRIPT & FIREBASE -->
+    <!-- ===================================================================== -->
+    
+    <!-- Import Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            signInWithEmailAndPassword, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            getDocs, 
+            getDoc, 
+            setDoc, 
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot, 
+            query, 
+            where
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. KONFIGURASI FIREBASE (WAJIB DIISI) ---
+        // GANTI DENGAN KONFIGURASI DARI PROYEK FIREBASE KAMU
+        const firebaseConfig = {
+          apiKey: "AIzaSyBJjNIH6E47Iqtul0Cj-6awqMeEFLQ_60Q",
+          authDomain: "fit-fc.firebaseapp.com",
+          projectId: "fit-fc",
+          storageBucket: "fit-fc.firebasestorage.app",
+          messagingSenderId: "914814128199",
+          appId: "1:914814128199:web:d17cc61f239278e7a4a162",
+          measurementId: "G-BCG9L0R15Q"
+        };
+        
+        // --- ATAU GUNAKAN KONFIGURASI CANVAS (JIKA TERSEDIA) ---
+        // Kode ini akan otomatis menimpa config di atas jika dijalankan di Canvas
+        const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const finalConfig = canvasFirebaseConfig ? canvasFirebaseConfig : firebaseConfig;
+        
+        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Inisialisasi Firebase
+        const app = initializeApp(finalConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- 2. GLOBAL STATE & DOM ELEMENTS ---
+        let currentUserId = null;
+        let teamsData = {}; // Kumpulan tim (Object)
+        let matchesData = []; // Daftar laga (Array)
+        let scorersData = []; // Daftar skor (Array)
+        let assistsData = []; // Daftar assist (Array)
+        let prevPositions = {}; // Lacak posisi lama { 'NamaTim': 1, ... }
+        
+        // Unsubscribe listeners (untuk logout)
+        let teamsListener = null;
+        let matchesListener = null;
+        let scorersListener = null;
+        let assistsListener = null;
+
+        // Tampilan
+        const authView = document.getElementById('auth-view');
+        const appView = document.getElementById('app-view');
+        
+        // Form Auth
+        const loginForm = document.getElementById('login-form');
+        const authError = document.getElementById('auth-error');
+        const logoutButton = document.getElementById('logout-button');
+        const userEmailSpan = document.getElementById('user-email');
+        
+        // Form Aplikasi
+        const addTeamForm = document.getElementById('add-team-form');
+        const addMatchForm = document.getElementById('add-match-form');
+        const addScorerForm = document.getElementById('add-scorer-form');
+        const addAssistForm = document.getElementById('add-assist-form');
+        
+        // Dropdown & Input
+        const teamNameInput = document.getElementById('team_name');
+        const teamADropdown = document.getElementById('team_a');
+        const teamBDropdown = document.getElementById('team_b');
+        const scorerTeamDropdown = document.getElementById('scorer-team-name');
+        const assistTeamDropdown = document.getElementById('assist-team-name');
+        
+        // Tabel Body
+        const standingsBody = document.getElementById('standings-table-body');
+        const matchHistoryBody = document.getElementById('match-history-body');
+        const scorersBody = document.getElementById('scorers-table-body');
+        const assistsBody = document.getElementById('assists-table-body');
+
+        
+        // --- 3. LOGIKA AUTENTIKASI ---
+
+        // Controller Utama: Cek status login
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User sedang login
+                currentUserId = user.uid;
+                userEmailSpan.textContent = user.email;
+                
+                authView.classList.add('hidden');
+                appView.classList.remove('hidden');
+                
+                // Muat semua data dan pasang listener
+                loadAllData(currentUserId);
+            } else {
+                // User logout
+                currentUserId = null;
+                authView.classList.remove('hidden');
+                appView.classList.add('hidden');
+                
+                // Hentikan semua listener
+                if (teamsListener) teamsListener();
+                if (matchesListener) matchesListener();
+                if (scorersListener) scorersListener();
+                if (assistsListener) assistsListener();
+                
+                // Bersihkan UI
+                clearUI();
+            }
+        });
+
+        // Handle Login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                authError.textContent = '';
+            } catch (error) {
+                authError.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // --- PERBAIKAN: Blok 'Handle Register' dihapus ---
+        // Blok kode 'registerForm.addEventListener' dihapus karena 'registerForm' tidak ada
+        // (Sesuai permintaan untuk menghapus fungsionalitas daftar)
+
+        // Handle Logout
+        logoutButton.addEventListener('click', async () => {
+            await signOut(auth);
+        });
+        
+        // Fungsi Bersihkan UI saat logout
+        function clearUI() {
+            teamsData = {};
+            matchesData = [];
+            scorersData = [];
+            assistsData = [];
+            prevPositions = {};
+            
+            standingsBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Silakan login...</td></tr>';
+            matchHistoryBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500">...</td></tr>';
+            scorersBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
+            assistsBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
+        }
+
+        // --- 4. PATH HELPER (WAJIB UNTUK CANVAS) ---
+        // Fungsi ini akan membuat path koleksi yang benar berdasarkan `userId`
+        
+        function getTeamsCollection(userId) {
+            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'teams');
+        }
+        function getMatchesCollection(userId) {
+            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'matches');
+        }
+        function getScorersCollection(userId) {
+            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'scorers');
+        }
+        function getAssistsCollection(userId) {
+            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'assists');
+        }
+        
+        // --- 5. LOGIKA DATA (CRUD & LISTENERS) ---
+        
+        // Fungsi utama untuk memuat semua data
+        function loadAllData(userId) {
+            
+            // 1. Listen ke 'teams'
+            const teamsQuery = query(getTeamsCollection(userId));
+            teamsListener = onSnapshot(teamsQuery, (snapshot) => {
+                teamsData = {}; // Reset
+                let teamNames = [];
+                snapshot.docs.forEach(doc => {
+                    const team = { ...doc.data(), id: doc.id };
+                    teamsData[team.name] = team;
+                    teamNames.push(team.name);
+                });
+                teamNames.sort();
+                
+                updateDropdowns(teamNames);
+                renderStandings(); // Hitung ulang klasemen
+            });
+            
+            // 2. Listen ke 'matches'
+            const matchesQuery = query(getMatchesCollection(userId));
+            matchesListener = onSnapshot(matchesQuery, (snapshot) => {
+                matchesData = []; // Reset
+                snapshot.docs.forEach(doc => {
+                    matchesData.push({ ...doc.data(), id: doc.id });
+                });
+                
+                renderMatchHistory();
+                renderStandings(); // Hitung ulang klasemen
+            });
+
+            // 3. Listen ke 'scorers'
+            const scorersQuery = query(getScorersCollection(userId));
+            scorersListener = onSnapshot(scorersQuery, (snapshot) => {
+                scorersData = [];
+                snapshot.docs.forEach(doc => {
+                    scorersData.push({ ...doc.data(), id: doc.id });
+                });
+                renderScorers();
+            });
+
+            // 4. Listen ke 'assists'
+            const assistsQuery = query(getAssistsCollection(userId));
+            assistsListener = onSnapshot(assistsQuery, (snapshot) => {
+                assistsData = [];
+                snapshot.docs.forEach(doc => {
+                    assistsData.push({ ...doc.data(), id: doc.id });
+                });
+                renderAssists();
+            });
+        }
+        
+        // --- Form Handlers ---
+
+        // Tambah Tim
+        addTeamForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const teamName = teamNameInput.value.trim();
+            if (teamName && currentUserId && !teamsData[teamName]) {
+                try {
+                    await addDoc(getTeamsCollection(currentUserId), {
+                        name: teamName,
+                        prev_pos: 999 // 999 untuk tim baru
+                    });
+                    teamNameInput.value = ''; // Kosongkan form
+                } catch (error) {
+                    console.error("Error adding team: ", error);
+                }
+            }
+        });
+        
+        // Tambah Pertandingan
+        addMatchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const teamA = teamADropdown.value;
+            const teamB = teamBDropdown.value;
+            const scoreA = parseInt(document.getElementById('score_a').value, 10);
+            const scoreB = parseInt(document.getElementById('score_b').value, 10);
+            
+            if (teamA !== teamB && currentUserId) {
+                try {
+                    await addDoc(getMatchesCollection(currentUserId), {
+                        team_a: teamA,
+                        score_a: scoreA,
+                        team_b: teamB,
+                        score_b: scoreB,
+                        createdAt: new Date().toISOString() // Untuk sorting
+                    });
+                    // Reset form
+                    document.getElementById('score_a').value = 0;
+                    document.getElementById('score_b').value = 0;
+                } catch (error) {
+                    console.error("Error adding match: ", error);
+                }
+            }
+        });
+        
+        // Tambah Top Skor
+        addScorerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const player = document.getElementById('scorer-player-name').value.trim();
+            const team = document.getElementById('scorer-team-name').value;
+            const goals = parseInt(document.getElementById('scorer-goals').value, 10);
+            
+            if (!player || !team || goals <= 0 || !currentUserId) return;
+
+            // Cek apakah pemain sudah ada
+            const existingScorer = scorersData.find(s => s.player === player);
+            
+            try {
+                if (existingScorer) {
+                    // Update
+                    const docRef = doc(getScorersCollection(currentUserId), existingScorer.id);
+                    await updateDoc(docRef, {
+                        goals: existingScorer.goals + goals,
+                        team: team // Update tim terakhir
+                    });
+                } else {
+                    // Tambah baru
+                    await addDoc(getScorersCollection(currentUserId), {
+                        player: player,
+                        team: team,
+                        goals: goals
+                    });
+                }
+                // Reset form
+                document.getElementById('scorer-player-name').value = '';
+                document.getElementById('scorer-goals').value = '';
+            } catch (error) {
+                console.error("Error adding scorer: ", error);
+            }
+        });
+        
+        // Tambah Top Assist
+        addAssistForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const player = document.getElementById('assist-player-name').value.trim();
+            const team = document.getElementById('assist-team-name').value;
+            const assists = parseInt(document.getElementById('assist-assists').value, 10);
+            
+            if (!player || !team || assists <= 0 || !currentUserId) return;
+
+            const existingAssist = assistsData.find(a => a.player === player);
+            
+            try {
+                if (existingAssist) {
+                    // Update
+                    const docRef = doc(getAssistsCollection(currentUserId), existingAssist.id);
+                    await updateDoc(docRef, {
+                        assists: existingAssist.assists + assists,
+                        team: team
+                    });
+                } else {
+                    // Tambah baru
+                    await addDoc(getAssistsCollection(currentUserId), {
+                        player: player,
+                        team: team,
+                        assists: assists
+                    });
+                }
+                // Reset form
+                document.getElementById('assist-player-name').value = '';
+                document.getElementById('assist-assists').value = '';
+            } catch (error) {
+                console.error("Error adding assist: ", error);
+            }
+        });
+        
+        // --- 6. LOGIKA RENDER (TAMPILAN) ---
+
+        // Update semua dropdown
+        function updateDropdowns(teamNames) {
+            const optionsHtml = teamNames.map(name => `<option value="${name}">${name}</option>`).join('');
+            
+            teamADropdown.innerHTML = optionsHtml;
+            teamBDropdown.innerHTML = optionsHtml;
+            scorerTeamDropdown.innerHTML = `<option value="">Pilih Tim</option>` + optionsHtml;
+            assistTeamDropdown.innerHTML = `<option value="">Pilih Tim</option>` + optionsHtml;
+        }
+
+        // Render Klasemen (LOGIKA KOMPLEKS)
+        async function renderStandings() {
+            if (!currentUserId || Object.keys(teamsData).length === 0) {
+                standingsBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Belum ada tim di klasemen.</td></tr>';
+                return;
+            }
+            
+            // 1. Inisialisasi data klasemen (persis seperti logika PHP)
+            let standingsData = {};
+            for (const name in teamsData) {
+                standingsData[name] = {
+                    name: name,
+                    played: 0, w: 0, d: 0, l: 0,
+                    gf: 0, ga: 0, gd: 0, pts: 0,
+                    form: [],
+                    prev_pos: teamsData[name].prev_pos || 0
+                };
+            }
+            
+            // 2. Kalkulasi ulang dari 'matchesData'
+            matchesData.forEach(match => {
+                const { team_a, team_b, score_a, score_b } = match;
+                
+                // Pastikan tim masih ada
+                if (standingsData[team_a] && standingsData[team_b]) {
+                    const teamAStats = standingsData[team_a];
+                    const teamBStats = standingsData[team_b];
+
+                    teamAStats.played++;
+                    teamBStats.played++;
+                    teamAStats.gf += score_a;
+                    teamAStats.ga += score_b;
+                    teamBStats.gf += score_b;
+                    teamBStats.ga += score_a;
+
+                    if (score_a > score_b) {
+                        teamAStats.w++; teamBStats.l++;
+                        teamAStats.form.push('W'); teamBStats.form.push('L');
+                    } else if (score_a < score_b) {
+                        teamAStats.l++; teamBStats.w++;
+                        teamAStats.form.push('L'); teamBStats.form.push('W');
+                    } else {
+                        teamAStats.d++; teamBStats.d++;
+                        teamAStats.form.push('D'); teamBStats.form.push('D');
+                    }
+                }
+            });
+
+            // 3. Finalisasi Data
+            let standings = Object.values(standingsData).map(stats => {
+                stats.gd = stats.gf - stats.ga;
+                stats.pts = (stats.w * 3) + stats.d;
+                stats.form = stats.form.slice(-3); // Ambil 3 laga terakhir
+                return stats;
+            });
+            
+            // 4. Urutkan (Sorting)
+            standings.sort((a, b) => {
+                if (a.pts !== b.pts) return b.pts - a.pts; // Poin
+                if (a.gd !== b.gd) return b.gd - a.gd; // Selisih Gol
+                if (a.gf !== b.gf) return b.gf - a.gf; // Gol Masuk
+                return a.name.localeCompare(b.name); // Nama
+            });
+            
+            // 5. Render ke HTML
+            let html = '';
+            let currentPositions = {}; // Lacak posisi baru
+            
+            standings.forEach((team, index) => {
+                const no = index + 1;
+                currentPositions[team.name] = no; // Catat posisi baru
+                
+                const oldPos = prevPositions[team.name] || team.prev_pos; // Ambil posisi lama
+                let icon = '';
+                
+                if (oldPos != 0 && oldPos != 999) { // 999 = baru
+                    if (no < oldPos) {
+                        icon = `<span class="text-green-500 font-bold ml-1" title="Naik dari pos ${oldPos}">&#9650;</span>`;
+                    } else if (no > oldPos) {
+                        icon = `<span class="text-red-500 font-bold ml-1" title="Turun dari pos ${oldPos}">&#9660;</span>`;
+                    }
+                }
+
+                // Render 3 Laga Terakhir
+                let formHtml = '';
+                const formDisplay = Array(3 - team.form.length).fill('N').concat(team.form);
+                formDisplay.forEach(result => {
+                    let className = '', text = '';
+                    switch (result) {
+                        case 'W': className = 'bg-green-500 text-white'; text = 'W'; break;
+                        case 'D': className = 'bg-yellow-500 text-white'; text = 'D'; break;
+                        case 'L': className = 'bg-red-500 text-white'; text = 'L'; break;
+                        case 'N': className = 'bg-gray-300 text-gray-700'; text = '-'; break;
+                    }
+                    formHtml += `<span class="w-6 h-6 flex items-center justify-center rounded font-bold text-xs mx-0.5 ${className}">${text}</span>`;
+                });
+
+                html += `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3 font-medium">${no}</td>
+                        <td class="p-3 font-semibold text-gray-800">
+                            <div class="flex items-center">
+                                <span>${team.name}</span>
+                                ${icon}
+                            </div>
+                        </td>
+                        <td class="p-3 text-center">${team.played}</td>
+                        <td class="p-3 text-center text-green-600">${team.w}</td>
+                        <td class="p-3 text-center text-yellow-600">${team.d}</td>
+                        <td class="p-3 text-center text-red-600">${team.l}</td>
+                        <td class="p-3 text-center">${team.gd} (${team.gf}-${team.ga})</td>
+                        <td class="p-3 text-center font-bold text-blue-600">${team.pts}</td>
+                        <td class="p-3"><div class="flex justify-center items-center">${formHtml}</div></td>
+                    </tr>
+                `;
+            });
+            
+            standingsBody.innerHTML = html || '<tr><td colspan="9" class="p-4 text-center text-gray-500">Mulai input tim dan pertandingan.</td></tr>';
+            
+            // 6. Simpan posisi baru ke database (DAN update state lokal)
+            // Ini penting agar 'prev_pos' tetap ada saat refresh
+            prevPositions = {}; // Reset state lokal
+            standings.forEach(async (team, index) => {
+                const newPos = index + 1;
+                prevPositions[team.name] = newPos; // Update state lokal
+                
+                // Cek jika posisi berubah SEBELUM update ke DB
+                if (teamsData[team.name] && teamsData[team.name].prev_pos !== newPos) {
+                    try {
+                        const teamDocRef = doc(getTeamsCollection(currentUserId), teamsData[team.name].id);
+                        await updateDoc(teamDocRef, { prev_pos: newPos });
+                    } catch (e) {
+                        // console.error("Error updating prev_pos", e);
+                        // Biarkan saja jika error, mungkin data belum sinkron
+                    }
+                }
+            });
+        }
+        
+        // Render Riwayat Laga
+        function renderMatchHistory() {
+            if (!currentUserId) return;
+            
+            // Urutkan (data terbaru di atas)
+            matchesData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            let html = '';
+            let matchNumber = matchesData.length;
+            
+            matchesData.forEach(match => {
+                html += `
+                    <tr class="border-b border-gray-100">
+                        <td class="p-2 text-center text-gray-600">${matchNumber}</td>
+                        <td class="p-2 font-medium">${match.team_a}</td>
+                        <td class="p-2 text-center font-bold">${match.score_a} - ${match.score_b}</td>
+                        <td class="p-2 font-medium">${match.team_b}</td>
+                        <td class="p-2 text-center">
+                            <button class="delete-btn" data-id="${match.id}" data-type="match">&times;</button>
+                        </td>
+                    </tr>
+                `;
+                matchNumber--;
+            });
+            matchHistoryBody.innerHTML = html || '<tr><td colspan="5" class="p-3 text-center text-gray-500">Belum ada data pertandingan.</td></tr>';
+        }
+        
+        // Render Top Skor
+        function renderScorers() {
+            if (!currentUserId) return;
+            
+            scorersData.sort((a, b) => b.goals - a.goals); // Urutkan
+            
+            let html = '';
+            scorersData.slice(0, 10).forEach(scorer => {
+                html += `
+                    <tr class="border-b border-gray-100">
+                        <td class="p-2 font-medium">${scorer.player}</td>
+                        <td class="p-2 text-gray-600">${scorer.team}</td>
+                        <td class="p-2 text-right font-bold">${scorer.goals}</td>
+                        <td class="p-2 text-center">
+                            <button class="delete-btn" data-id="${scorer.id}" data-type="scorer">&times;</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            scorersBody.innerHTML = html || '<tr><td colspan="4" class="p-3 text-center text-gray-500">Belum ada data.</td></tr>';
+        }
+        
+        // Render Top Assist
+        function renderAssists() {
+            if (!currentUserId) return;
+            
+            assistsData.sort((a, b) => b.assists - a.assists); // Urutkan
+            
+            let html = '';
+            assistsData.slice(0, 10).forEach(assist => {
+                html += `
+                    <tr class="border-b border-gray-100">
+                        <td class="p-2 font-medium">${assist.player}</td>
+                        <td class="p-2 text-gray-600">${assist.team}</td>
+                        <td class="p-2 text-right font-bold">${assist.assists}</td>
+                        <td class="p-2 text-center">
+                            <button class="delete-btn" data-id="${assist.id}" data-type="assist">&times;</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            assistsBody.innerHTML = html || '<tr><td colspan="4" class="p-3 text-center text-gray-500">Belum ada data.</td></tr>';
+        }
+        
+        // --- 7. EVENT LISTENER UNTUK HAPUS (DELETE) ---
+        // Kita pakai satu event listener di 'app-view' untuk menangani semua klik
+        appView.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+                
+                if (!id || !type || !currentUserId) return;
+                
+                let docRef;
+                let confirmationText = "Yakin ingin menghapus data ini?";
+                
+                try {
+                    if (type === 'match') {
+                        docRef = doc(getMatchesCollection(currentUserId), id);
+                        confirmationText = "Yakin hapus laga ini? Klasemen akan dihitung ulang.";
+                    } else if (type === 'scorer') {
+                        docRef = doc(getScorersCollection(currentUserId), id);
+                        confirmationText = "Yakin hapus pemain ini dari top skor?";
+                    } else if (type === 'assist') {
+                        docRef = doc(getAssistsCollection(currentUserId), id);
+                        confirmationText = "Yakin hapus pemain ini dari top assist?";
+                    }
+                    
+                    if (confirm(confirmationText)) {
+                        await deleteDoc(docRef);
+                        // onSnapshot akan otomatis meng-update UI
+                    }
+                } catch (error) {
+                    console.error(`Error deleting ${type}: `, error);
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
