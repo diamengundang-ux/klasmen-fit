@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Klasmen FIT FC</title>
+    <title>Aplikasi Klasmen FIT FC (Firebase)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -24,7 +24,6 @@
     <div class="container mx-auto max-w-7xl">
 
         <!-- ===== BAGIAN AUTENTIKASI (LOGIN/REGISTER) ===== -->
-        <!-- DIUBAH: Ditambahkan class flex untuk menengahkan kotak login -->
         <div id="auth-view" class="flex items-center justify-center min-h-[80vh]">
             <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
                 <div class="flex items-center gap-4 mb-6">
@@ -249,27 +248,20 @@
             where
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. KONFIGURASI FIREBASE (WAJIB DIISI) ---
-        // GANTI DENGAN KONFIGURASI DARI PROYEK FIREBASE KAMU
+        // --- 1. KONFIGURASI FIREBASE ---
+        // (Diambil dari kode yang kamu berikan sebelumnya)
         const firebaseConfig = {
           apiKey: "AIzaSyBJjNIH6E47Iqtul0Cj-6awqMeEFLQ_60Q",
           authDomain: "fit-fc.firebaseapp.com",
           projectId: "fit-fc",
           storageBucket: "fit-fc.firebasestorage.app",
           messagingSenderId: "914814128199",
-          appId: "1:914814128199:web:d17cc61f239278e7a4a162",
-          measurementId: "G-BCG9L0R15Q"
+          appId: "1:914814128199:web:d17cc61f239278e7a4a162", // <-- Ini pakai config barumu
+          measurementId: "G-BCG9L0R15Q" // <-- Ini pakai config barumu
         };
-        
-        // --- ATAU GUNAKAN KONFIGURASI CANVAS (JIKA TERSEDIA) ---
-        // Kode ini akan otomatis menimpa config di atas jika dijalankan di Canvas
-        const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const finalConfig = canvasFirebaseConfig ? canvasFirebaseConfig : firebaseConfig;
-        
-        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // Inisialisasi Firebase
-        const app = initializeApp(finalConfig);
+        const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -362,10 +354,6 @@
             }
         });
 
-        // --- PERBAIKAN: Blok 'Handle Register' dihapus ---
-        // Blok kode 'registerForm.addEventListener' dihapus karena 'registerForm' tidak ada
-        // (Sesuai permintaan untuk menghapus fungsionalitas daftar)
-
         // Handle Logout
         logoutButton.addEventListener('click', async () => {
             await signOut(auth);
@@ -385,20 +373,24 @@
             assistsBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">...</td></tr>';
         }
 
-        // --- 4. PATH HELPER (WAJIB UNTUK CANVAS) ---
-        // Fungsi ini akan membuat path koleksi yang benar berdasarkan `userId`
+        // --- 4. PATH HELPER (PERBAIKAN PENTING DI SINI) ---
+        // Fungsi ini membuat path koleksi yang NORMAL, bukan path 'artifacts'
         
         function getTeamsCollection(userId) {
-            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'teams');
+            // Path BARU: /users/{userId}/teams
+            return collection(db, 'users', userId, 'teams');
         }
         function getMatchesCollection(userId) {
-            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'matches');
+            // Path BARU: /users/{userId}/matches
+            return collection(db, 'users', userId, 'matches');
         }
         function getScorersCollection(userId) {
-            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'scorers');
+            // Path BARU: /users/{userId}/scorers
+            return collection(db, 'users', userId, 'scorers');
         }
         function getAssistsCollection(userId) {
-            return collection(db, 'artifacts', canvasAppId, 'users', userId, 'assists');
+            // Path BARU: /users/{userId}/assists
+            return collection(db, 'users', userId, 'assists');
         }
         
         // --- 5. LOGIKA DATA (CRUD & LISTENERS) ---
@@ -463,6 +455,7 @@
             const teamName = teamNameInput.value.trim();
             if (teamName && currentUserId && !teamsData[teamName]) {
                 try {
+                    // Menggunakan path BARU
                     await addDoc(getTeamsCollection(currentUserId), {
                         name: teamName,
                         prev_pos: 999 // 999 untuk tim baru
@@ -470,6 +463,7 @@
                     teamNameInput.value = ''; // Kosongkan form
                 } catch (error) {
                     console.error("Error adding team: ", error);
+                    alert("Gagal menambah tim. Cek console (F12) untuk error.");
                 }
             }
         });
@@ -484,6 +478,7 @@
             
             if (teamA !== teamB && currentUserId) {
                 try {
+                    // Menggunakan path BARU
                     await addDoc(getMatchesCollection(currentUserId), {
                         team_a: teamA,
                         score_a: scoreA,
@@ -496,6 +491,7 @@
                     document.getElementById('score_b').value = 0;
                 } catch (error) {
                     console.error("Error adding match: ", error);
+                    alert("Gagal menambah laga. Cek console (F12) untuk error.");
                 }
             }
         });
@@ -533,6 +529,7 @@
                 document.getElementById('scorer-goals').value = '';
             } catch (error) {
                 console.error("Error adding scorer: ", error);
+                alert("Gagal menambah top skor. Cek console (F12) untuk error.");
             }
         });
         
@@ -568,6 +565,7 @@
                 document.getElementById('assist-assists').value = '';
             } catch (error) {
                 console.error("Error adding assist: ", error);
+                alert("Gagal menambah top assist. Cek console (F12) untuk error.");
             }
         });
         
@@ -598,7 +596,8 @@
                     played: 0, w: 0, d: 0, l: 0,
                     gf: 0, ga: 0, gd: 0, pts: 0,
                     form: [],
-                    prev_pos: teamsData[name].prev_pos || 0
+                    prev_pos: teamsData[name].prev_pos || 0,
+                    id: teamsData[name].id // Simpan ID dokumen
                 };
             }
             
@@ -712,7 +711,7 @@
                 // Cek jika posisi berubah SEBELUM update ke DB
                 if (teamsData[team.name] && teamsData[team.name].prev_pos !== newPos) {
                     try {
-                        const teamDocRef = doc(getTeamsCollection(currentUserId), teamsData[team.name].id);
+                        const teamDocRef = doc(getTeamsCollection(currentUserId), team.id); // Gunakan ID tim
                         await updateDoc(teamDocRef, { prev_pos: newPos });
                     } catch (e) {
                         // console.error("Error updating prev_pos", e);
